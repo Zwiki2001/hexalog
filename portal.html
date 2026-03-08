@@ -6,6 +6,7 @@
 <title>HexaLog — Client Portal</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -242,13 +243,26 @@ nav{background:rgba(7,12,24,.97);border-bottom:1px solid rgba(26,63,143,.3);padd
 <script>
 var currentOrder = null;
 
-// ── HELPERS ─────────────────────────────────────────────────
-function getOrders(){ return JSON.parse(localStorage.getItem('hl_orders')||'[]'); }
-function saveOrders(arr){ localStorage.setItem('hl_orders', JSON.stringify(arr)); }
-function findOrder(id, email){
-  return getOrders().find(function(o){
-    return o.id.toLowerCase()===id.trim().toLowerCase() &&
-           o.client.email.toLowerCase()===email.trim().toLowerCase();
+// ── SUPABASE ────────────────────────────────────────────────
+var _sb = supabase.createClient('https://mjcuhyujqpzgybbqeaxd.supabase.co','sb_publishable_1DZMiEy3eonWMiWKy7B_dA_t0IhBff0');
+function dbToOrder(r){
+  return {id:r.id,status:r.status,createdAt:r.created_at,orderType:r.order_type,
+    client:r.client||{},shipment:r.shipment||{},price:r.price,paid:r.paid,pod:r.pod,timeline:r.timeline||[]};
+}
+async function findOrder(id, email){
+  var {data,error}=await _sb.from('orders').select('*')
+    .ilike('id',id.trim())
+    .limit(10);
+  if(error||!data) return null;
+  var row=data.find(function(r){
+    return r.client && r.client.email && r.client.email.toLowerCase()===email.trim().toLowerCase();
+  });
+  return row ? dbToOrder(row) : null;
+}
+async function saveOrderRemote(o){
+  await _sb.from('orders').upsert({
+    id:o.id,status:o.status,created_at:o.createdAt,order_type:o.orderType||'B2B',
+    client:o.client,shipment:o.shipment,price:o.price,paid:o.paid||false,pod:o.pod||null,timeline:o.timeline||[]
   });
 }
 function fmtDate(ts){
@@ -379,13 +393,17 @@ function renderOrder(order){
 }
 
 // ── LOGIN ────────────────────────────────────────────────────
-document.getElementById('btnLogin').addEventListener('click',function(){
+document.getElementById('btnLogin').addEventListener('click', async function(){
   var id=document.getElementById('loginId').value;
   var email=document.getElementById('loginEmail').value;
-  var order=findOrder(id,email);
+  var btn=document.getElementById('btnLogin');
   var err=document.getElementById('loginErr');
+  btn.disabled=true; btn.textContent='Searching…';
+  var order=await findOrder(id,email);
+  btn.disabled=false; btn.textContent='View My Order';
   if(!order){err.style.display='block';return;}
   err.style.display='none';
+  currentOrder=order;
   showPortal(order);
   sessionStorage.setItem('hl_portal_id',order.id);
   sessionStorage.setItem('hl_portal_email',order.client.email);
@@ -432,16 +450,12 @@ document.getElementById('btnLookup').addEventListener('click',function(){
 // ── PAYMENT ──────────────────────────────────────────────────
 document.getElementById('payModalX').addEventListener('click',function(){document.getElementById('payModal').classList.remove('open');});
 
-function markPaid(method){
+async function markPaid(method){
   document.getElementById('payModal').classList.remove('open');
   if(!currentOrder) return;
-  var orders=getOrders();
-  var idx=orders.findIndex(function(o){return o.id===currentOrder.id;});
-  if(idx<0) return;
-  orders[idx].paid=true;
-  orders[idx].paymentMethod=method;
-  saveOrders(orders);
-  currentOrder=orders[idx];
+  currentOrder.paid=true;
+  currentOrder.paymentMethod=method;
+  await saveOrderRemote(currentOrder);
   renderOrder(currentOrder);
 }
 
@@ -724,12 +738,12 @@ document.getElementById('btnDemo').addEventListener('click', function(){
 });
 
 // ── AUTO LOGIN FROM SESSION ──────────────────────────────────
-(function(){
+(async function(){
   var sid=sessionStorage.getItem('hl_portal_id');
   var sem=sessionStorage.getItem('hl_portal_email');
   if(sid&&sem){
-    var order=findOrder(sid,sem);
-    if(order) showPortal(order);
+    var order=await findOrder(sid,sem);
+    if(order){ currentOrder=order; showPortal(order); }
   }
 })();
 </script>

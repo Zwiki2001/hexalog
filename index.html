@@ -810,6 +810,7 @@ footer{background:#0B1220;border-top:1px solid rgba(26,63,143,.3);padding:56px 0
 ====================================================== */
 .full{width:100%;justify-content:center}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -2034,8 +2035,10 @@ document.getElementById('btnBook').addEventListener('click',function(){
   document.getElementById('bookModal').classList.add('open');
 });
 
-// Confirm booking — save order to localStorage
-document.getElementById('bkSubmit').addEventListener('click',function(){
+// Confirm booking — save order to Supabase
+var _sb = supabase.createClient('https://mjcuhyujqpzgybbqeaxd.supabase.co','sb_publishable_1DZMiEy3eonWMiWKy7B_dA_t0IhBff0');
+
+document.getElementById('bkSubmit').addEventListener('click', async function(){
   var name=document.getElementById('bkName').value.trim();
   var email=document.getElementById('bkEmail').value.trim();
   var phone=document.getElementById('bkPhone').value.trim();
@@ -2072,9 +2075,22 @@ document.getElementById('bkSubmit').addEventListener('click',function(){
     price:price, paid:false, pod:null,
     timeline:[{status:'pending',label:'Order Received',ts:new Date().toISOString()}]
   };
-  var orders=JSON.parse(localStorage.getItem('hl_orders')||'[]');
-  orders.unshift(order);
-  localStorage.setItem('hl_orders',JSON.stringify(orders));
+  var btn = document.getElementById('bkSubmit');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var {error} = await _sb.from('orders').insert({
+    id: order.id, status: order.status,
+    created_at: order.createdAt,
+    order_type: document.getElementById('orderType').value==='b2c'?'B2C':'B2B',
+    client: order.client, shipment: order.shipment,
+    price: order.price, paid: false, pod: null,
+    timeline: order.timeline
+  });
+  btn.disabled = false; btn.textContent = 'Confirm Booking';
+  if(error){
+    document.getElementById('bkErr').textContent = 'Could not save order. Please try again.';
+    document.getElementById('bkErr').style.display = 'block';
+    return;
+  }
   document.getElementById('bkOrderId').textContent=id;
   document.getElementById('modalStep1').style.display='none';
   document.getElementById('modalStep2').style.display='block';

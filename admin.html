@@ -186,6 +186,7 @@ input,textarea,button,select{font-family:inherit}
 .no-chk{display:flex;align-items:center;gap:7px;font-size:.82rem;color:#8094B8;cursor:pointer;padding:7px 12px;background:#0B1220;border:1px solid rgba(255,255,255,.07);border-radius:8px}
 .no-chk input{accent-color:#F5A623;width:14px;height:14px}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -391,9 +392,31 @@ var STATUS_MAP = {
 var currentFilter = 'all';
 var currentOrderId = null;
 
-// ── DATA ─────────────────────────────────────────────────────
-function getOrders(){ return JSON.parse(localStorage.getItem('hl_orders')||'[]'); }
-function saveOrders(arr){ localStorage.setItem('hl_orders', JSON.stringify(arr)); }
+// ── SUPABASE ──────────────────────────────────────────────────
+var _sb = supabase.createClient('https://mjcuhyujqpzgybbqeaxd.supabase.co','sb_publishable_1DZMiEy3eonWMiWKy7B_dA_t0IhBff0');
+var _orders = [];
+
+function dbToOrder(r){
+  return {id:r.id,status:r.status,createdAt:r.created_at,orderType:r.order_type,
+    client:r.client||{},shipment:r.shipment||{},price:r.price,paid:r.paid,pod:r.pod,timeline:r.timeline||[]};
+}
+function orderToDb(o){
+  return {id:o.id,status:o.status,created_at:o.createdAt,order_type:o.orderType||'B2B',
+    client:o.client,shipment:o.shipment,price:o.price,paid:o.paid||false,pod:o.pod||null,timeline:o.timeline||[]};
+}
+async function fetchOrders(){
+  var {data,error}=await _sb.from('orders').select('*').order('created_at',{ascending:false});
+  if(!error) _orders=data.map(dbToOrder);
+  return _orders;
+}
+async function upsertOrder(o){
+  _orders=_orders.filter(function(x){return x.id!==o.id;});
+  _orders.unshift(o);
+  await _sb.from('orders').upsert(orderToDb(o));
+}
+function getOrders(){ return _orders; }
+function saveOrders(arr){ _orders=arr; }
+
 function fmtDate(ts){
   if(!ts) return '—';
   var d=new Date(ts);
@@ -403,13 +426,15 @@ function fmtDate(ts){
 // ── LOGIN ─────────────────────────────────────────────────────
 document.getElementById('btnAdminLogin').addEventListener('click', doLogin);
 document.getElementById('pwInput').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
-function doLogin(){
+async function doLogin(){
   var pw=document.getElementById('pwInput').value;
   if(pw===ADMIN_PW){
     sessionStorage.setItem('hl_admin','1');
     document.getElementById('loginWrap').style.display='none';
     document.getElementById('dashboard').style.display='block';
+    await fetchOrders();
     loadDashboard();
+    subscribeRealtime();
   } else {
     document.getElementById('loginErr').style.display='block';
   }
@@ -639,7 +664,7 @@ function renderDetail(order){
   });
 
   // Update button
-  document.getElementById('btnUpdateStatus').addEventListener('click',function(){
+  document.getElementById('btnUpdateStatus').addEventListener('click', async function(){
     var note=document.getElementById('sttNote').value.trim();
     var orders=getOrders();
     var idx=orders.findIndex(function(o){return o.id===order.id});
@@ -647,7 +672,7 @@ function renderDetail(order){
     orders[idx].status=pendingSt;
     orders[idx].timeline=orders[idx].timeline||[];
     orders[idx].timeline.push({status:pendingSt,ts:new Date().toISOString(),note:note});
-    saveOrders(orders);
+    await upsertOrder(orders[idx]);
     document.getElementById('updateOk').style.display='block';
     setTimeout(function(){document.getElementById('updateOk').style.display='none';},2500);
     renderStats();
@@ -657,14 +682,14 @@ function renderDetail(order){
   });
 
   // ── ACCEPT / REJECT / ASK buttons ────────────────────────────
-  function updateOrderStatus(newStatus, note, openEmail){
+  async function updateOrderStatus(newStatus, note, openEmail){
     var orders=getOrders();
     var idx=orders.findIndex(function(o){return o.id===order.id});
     if(idx<0) return;
     orders[idx].status=newStatus;
     orders[idx].timeline=orders[idx].timeline||[];
     orders[idx].timeline.push({status:newStatus,ts:new Date().toISOString(),note:note});
-    saveOrders(orders);
+    await upsertOrder(orders[idx]);
     renderStats(); renderFilters(); renderOrders();
     renderDetail(orders[idx]);
     if(openEmail) window.location.href=openEmail;
@@ -791,7 +816,7 @@ document.getElementById('newOrderX').addEventListener('click',function(){documen
 document.getElementById('newOrderCancel').addEventListener('click',function(){document.getElementById('newOrderModal').classList.remove('open');});
 document.getElementById('newOrderModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
 
-document.getElementById('newOrderSave').addEventListener('click',function(){
+document.getElementById('newOrderSave').addEventListener('click', async function(){
   var name=document.getElementById('no_name').value.trim();
   var email=document.getElementById('no_email').value.trim();
   var from=document.getElementById('no_from').value;
@@ -834,9 +859,7 @@ document.getElementById('newOrderSave').addEventListener('click',function(){
     pod:null,
     timeline:[{status:'pending',label:'Order Created (manual)',ts:new Date().toISOString()}]
   };
-  var orders=getOrders();
-  orders.unshift(order);
-  saveOrders(orders);
+  await upsertOrder(order);
   document.getElementById('newOrderModal').classList.remove('open');
   loadDashboard();
   currentOrderId=order.id;
@@ -844,32 +867,29 @@ document.getElementById('newOrderSave').addEventListener('click',function(){
   renderDetail(order);
 });
 
-// ── NEW ORDER NOTIFICATIONS ───────────────────────────────────
-// Ask permission once on login
-if(sessionStorage.getItem('hl_admin')==='1' && 'Notification' in window && Notification.permission==='default'){
-  Notification.requestPermission();
+// ── REALTIME + POLLING ────────────────────────────────────────
+function subscribeRealtime(){
+  _sb.channel('orders-changes')
+    .on('postgres_changes',{event:'*',schema:'public',table:'orders'}, async function(payload){
+      await fetchOrders();
+      var pending=_orders.filter(function(o){return o.status==='pending';});
+      if(payload.eventType==='INSERT'){
+        document.title='(1 New) HexaLog Admin TMS';
+        if('Notification' in window && Notification.permission==='granted'){
+          new Notification('HexaLog — New Order!',{body:'New booking received.',icon:''});
+        }
+      } else {
+        document.title='HexaLog — Admin TMS';
+      }
+      renderStats(); renderFilters(); renderOrders();
+    })
+    .subscribe();
 }
-// Poll every 30s for new pending orders
-var lastKnownPending = getOrders().filter(function(o){return o.status==='pending';}).map(function(o){return o.id;});
-setInterval(function(){
+// Fallback poll every 30s
+setInterval(async function(){
   if(sessionStorage.getItem('hl_admin')!=='1') return;
-  var current = getOrders().filter(function(o){return o.status==='pending';}).map(function(o){return o.id;});
-  var newOnes = current.filter(function(id){return !lastKnownPending.includes(id);});
-  if(newOnes.length > 0){
-    // Update tab title
-    document.title = '('+newOnes.length+' New) HexaLog Admin TMS';
-    // Browser notification
-    if('Notification' in window && Notification.permission==='granted'){
-      new Notification('HexaLog — New Order!', {
-        body: newOnes.length+' new booking(s) waiting for confirmation.',
-        icon: ''
-      });
-    }
-    renderStats(); renderFilters(); renderOrders();
-  } else {
-    document.title = 'HexaLog — Admin TMS';
-  }
-  lastKnownPending = current;
+  await fetchOrders();
+  renderStats(); renderFilters(); renderOrders();
 }, 30000);
 </script>
 </body>
