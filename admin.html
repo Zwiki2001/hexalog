@@ -450,7 +450,10 @@ document.getElementById('btnAdminLogout').addEventListener('click',function(){
 if(sessionStorage.getItem('hl_admin')==='1'){
   document.getElementById('loginWrap').style.display='none';
   document.getElementById('dashboard').style.display='block';
-  loadDashboard();
+  fetchOrders().then(function(){
+    loadDashboard();
+    subscribeRealtime();
+  });
 }
 
 // ── DASHBOARD ────────────────────────────────────────────────

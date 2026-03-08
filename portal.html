@@ -319,19 +319,24 @@ function renderOrder(order){
     tlHtml+='</div></div>';
   }
 
-  // Payment block
+  // Payment / Invoice block
   var payHtml = '';
-  if(order.status==='delivered'||order.paid){
+  if(order.paid){
     payHtml='<div class="pay-block paid">';
-    payHtml+='<div class="pay-info"><strong>Invoice</strong><span>'+(order.paid?'Payment received':'Outstanding')+'</span></div>';
+    payHtml+='<div class="pay-info"><strong>Invoice</strong><span>Payment received — thank you!</span></div>';
     payHtml+='<div class="pay-amount paid-amount">'+order.price+'</div>';
     payHtml+='<span class="paid-label"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Paid</span>';
     payHtml+='</div>';
+  } else if(order.status==='delivered'){
+    payHtml='<div class="pay-block">';
+    payHtml+='<div class="pay-info"><strong>Invoice Ready</strong><span>Order delivered — please settle your invoice</span></div>';
+    payHtml+='<div class="pay-amount">'+order.price+'</div>';
+    payHtml+='<button class="btn-pay" onclick="downloadInvoice()">&#8681; Download Invoice</button>';
+    payHtml+='</div>';
   } else if(!['pending','cancelled'].includes(order.status)){
     payHtml='<div class="pay-block">';
-    payHtml+='<div class="pay-info"><strong>Invoice Amount</strong><span>Payment due on delivery</span></div>';
+    payHtml+='<div class="pay-info"><strong>Invoice Amount</strong><span>Invoice will be sent upon delivery</span></div>';
     payHtml+='<div class="pay-amount">'+order.price+'</div>';
-    payHtml+='<button class="btn-pay" id="openPayModal">Pay Now</button>';
     payHtml+='</div>';
   }
 
@@ -457,6 +462,140 @@ async function markPaid(method){
   currentOrder.paymentMethod=method;
   await saveOrderRemote(currentOrder);
   renderOrder(currentOrder);
+}
+
+// ── INVOICE PDF ──────────────────────────────────────────────
+function downloadInvoice(){
+  if(!currentOrder) return;
+  var o = currentOrder;
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({unit:'mm', format:'a4'});
+  var W = 210, M = 18;
+
+  // Header bar
+  doc.setFillColor(10, 18, 40);
+  doc.rect(0, 0, W, 38, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(22); doc.setFont('helvetica','bold');
+  doc.text('HEXALOG', M, 18);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.setTextColor(100,150,220);
+  doc.text('Logistics · Benelux & France', M, 25);
+  doc.setTextColor(245,166,35);
+  doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('INVOICE', W-M, 18, {align:'right'});
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.setTextColor(180,200,240);
+  doc.text('info@hexalog.eu', W-M, 25, {align:'right'});
+  doc.text('hexalog.eu', W-M, 30, {align:'right'});
+
+  var y = 50;
+
+  // Invoice meta
+  doc.setTextColor(30,30,50);
+  doc.setFontSize(9); doc.setFont('helvetica','bold');
+  doc.setTextColor(100,120,160);
+  doc.text('ORDER ID', M, y); doc.text('DATE', 90, y); doc.text('STATUS', 140, y);
+  y += 5;
+  doc.setFont('helvetica','bold'); doc.setTextColor(10,18,40); doc.setFontSize(11);
+  doc.text(o.id, M, y);
+  doc.setFontSize(10);
+  doc.text(new Date(o.createdAt||Date.now()).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), 90, y);
+  doc.setTextColor(0,180,120);
+  doc.text('DELIVERED', 140, y);
+
+  y += 12;
+  // Divider
+  doc.setDrawColor(220,228,240); doc.setLineWidth(0.4);
+  doc.line(M, y, W-M, y); y += 10;
+
+  // Client & Shipment side by side
+  var col2 = W/2+2;
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(100,120,160);
+  doc.text('BILL TO', M, y);
+  doc.text('SHIPMENT DETAILS', col2, y);
+  y += 5;
+  doc.setFont('helvetica','normal'); doc.setTextColor(20,30,60); doc.setFontSize(9);
+
+  var clientLines = [
+    o.client.name||'',
+    o.client.company||'',
+    o.client.email||'',
+    o.client.phone||''
+  ].filter(Boolean);
+  clientLines.forEach(function(l){ doc.text(l, M, y); y+=5; });
+
+  var sy = y - (clientLines.length*5);
+  var s = o.shipment||{};
+  var CNAMES = {BE:'Belgium',NL:'Netherlands',LU:'Luxembourg',FR:'France'};
+  var shipLines = [
+    'From: '+(CNAMES[s.from]||s.from||'—')+(s.fromCity?', '+s.fromCity:''),
+    'To: '+(CNAMES[s.to]||s.to||'—')+(s.toCity?', '+s.toCity:''),
+    'Service: '+(s.service||'LTL'),
+    'Pallets: '+s.qty+'× '+(s.palletType||'Euro Pallet'),
+    s.weight?'Weight: '+s.weight+' kg':'',
+    s.height?'Height: '+s.height+' cm':''
+  ].filter(Boolean);
+  shipLines.forEach(function(l){ doc.text(l, col2, sy); sy+=5; });
+
+  y = Math.max(y, sy) + 8;
+  doc.line(M, y, W-M, y); y += 10;
+
+  // Price table
+  doc.setFillColor(240,244,255);
+  doc.rect(M, y-4, W-M*2, 9, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(50,70,120);
+  doc.text('Description', M+2, y+1);
+  doc.text('Amount', W-M-2, y+1, {align:'right'});
+  y += 10;
+  doc.setFont('helvetica','normal'); doc.setTextColor(20,30,60);
+  doc.text('Freight service — '+s.service+' · '+(CNAMES[s.from]||s.from)+' → '+(CNAMES[s.to]||s.to), M+2, y);
+  doc.setFont('helvetica','bold');
+  doc.text(o.price||'TBD', W-M-2, y, {align:'right'});
+  y += 6;
+  doc.setDrawColor(200,210,235); doc.line(M, y, W-M, y); y += 4;
+  doc.setFontSize(10);
+  doc.text('TOTAL DUE', M+2, y+3);
+  doc.setTextColor(245,140,20); doc.setFontSize(13);
+  doc.text(o.price||'TBD', W-M-2, y+3, {align:'right'});
+
+  y += 18;
+  doc.line(M, y, W-M, y); y += 10;
+
+  // Payment instructions
+  doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(10,18,40);
+  doc.text('Payment Instructions', M, y); y += 7;
+
+  // Bank
+  doc.setFillColor(245,248,255);
+  doc.rect(M, y-3, W-M*2, 22, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(26,63,143);
+  doc.text('🏦  Bank Transfer', M+3, y+2);
+  doc.setFont('helvetica','normal'); doc.setTextColor(30,40,80);
+  doc.text('IBAN:      BE00 0000 0000 0000', M+3, y+7);
+  doc.text('BIC:       GEBABEBB', M+3, y+12);
+  doc.text('Reference: '+o.id+' — '+o.client.name, M+3, y+17);
+  y += 27;
+
+  // PayPal
+  doc.setFillColor(245,248,255);
+  doc.rect(M, y-3, W-M*2, 13, 'F');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(0,53,167);
+  doc.text('P  PayPal', M+3, y+2);
+  doc.setFont('helvetica','normal'); doc.setTextColor(30,40,80);
+  doc.text('Send to: payments@hexalog.eu  |  Note: '+o.id, M+3, y+8);
+  y += 18;
+
+  doc.setFont('helvetica','italic'); doc.setFontSize(8); doc.setTextColor(140,150,170);
+  doc.text('Please include your Order ID as payment reference. Thank you for choosing HexaLog!', M, y);
+
+  // Footer
+  doc.setFillColor(10,18,40);
+  doc.rect(0, 282, W, 15, 'F');
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(100,130,180);
+  doc.text('HexaLog  ·  info@hexalog.eu  ·  hexalog.eu  ·  Benelux & France', W/2, 290, {align:'center'});
+
+  doc.save('HexaLog-Invoice-'+o.id+'.pdf');
 }
 
 // ── POD DOWNLOAD — real PDF via jsPDF ───────────────────────
