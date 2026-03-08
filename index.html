@@ -810,6 +810,7 @@ footer{background:#0B1220;border-top:1px solid rgba(26,63,143,.3);padding:56px 0
 ====================================================== */
 .full{width:100%;justify-content:center}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -1644,9 +1645,14 @@ footer{background:#0B1220;border-top:1px solid rgba(26,63,143,.3);padding:56px 0
       <p style="font-size:.9rem;color:#8094B8;margin-bottom:10px">Your order ID:</p>
       <div id="bkOrderId" style="font-family:'Space Grotesk',sans-serif;font-size:1.8rem;font-weight:800;color:#FFB940;letter-spacing:.06em;margin-bottom:12px"></div>
       <p style="font-size:.83rem;color:#8094B8;margin-bottom:18px">Save this ID — you'll use it to track your shipment in the <strong style="color:#E4EAFF">Client Portal</strong>. A confirmation has been saved.</p>
-      <a href="portal.html" class="btn-primary full" style="padding:13px;justify-content:center">
-        Track My Shipment →
-      </a>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button id="bkDownloadLabels" onclick="bkDownloadLabels()" style="background:linear-gradient(135deg,#B8720A,#F5A623);border:none;color:#0A1228;font-weight:700;font-size:.9rem;padding:13px;border-radius:10px;cursor:pointer;width:100%">
+          &#8681; Download Pallet Labels
+        </button>
+        <a href="portal.html" class="btn-primary full" style="padding:13px;justify-content:center">
+          Track My Shipment →
+        </a>
+      </div>
     </div>
   </div>
 </div>
@@ -2037,6 +2043,7 @@ document.getElementById('btnBook').addEventListener('click',function(){
 
 // Confirm booking — save order to Supabase
 var _sb = supabase.createClient('https://mjcuhyujqpzgybbqeaxd.supabase.co','sb_publishable_1DZMiEy3eonWMiWKy7B_dA_t0IhBff0');
+var _lastBookedOrder = null;
 
 document.getElementById('bkSubmit').addEventListener('click', async function(){
   var name=document.getElementById('bkName').value.trim();
@@ -2091,6 +2098,7 @@ document.getElementById('bkSubmit').addEventListener('click', async function(){
     document.getElementById('bkErr').style.display = 'block';
     return;
   }
+  _lastBookedOrder = order;
   document.getElementById('bkOrderId').textContent=id;
   document.getElementById('modalStep1').style.display='none';
   document.getElementById('modalStep2').style.display='block';
@@ -2554,6 +2562,65 @@ document.querySelectorAll('.lang-bar button').forEach(function(btn){
     applyLang(btn.dataset.lang);
   });
 });
+
+function bkDrawBarcode(doc,text,x,y,w,h){var bits=[];bits=bits.concat([1,0,1]);for(var i=0;i<text.length;i++){var c=text.charCodeAt(i)%95+32;for(var b=6;b>=0;b--)bits.push((c>>b)&1);bits.push(0);}bits=bits.concat([1,0,1,1]);var barW=w/bits.length;for(var j=0;j<bits.length;j++){if(bits[j]){doc.setFillColor(0,0,0);doc.rect(x+j*barW,y,barW*0.85,h,'F');}}}
+
+function bkDownloadLabels(){
+  if(!_lastBookedOrder) return;
+  var o=_lastBookedOrder, s=o.shipment||{}, qty=parseInt(s.qty)||1;
+  var CNAMES={BE:'Belgium',NL:'Netherlands',LU:'Luxembourg',FR:'France'};
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({unit:'mm',format:[105,148],orientation:'portrait'});
+  var palDims={'Euro Pallet':'120×80cm','Block Pallet':'120×100cm','Half Pallet':'80×60cm','Industry Pallet':'120×120cm','Custom':'—'};
+  for(var p=1;p<=qty;p++){
+    if(p>1) doc.addPage([105,148]);
+    var LW=105,LH=148,M=5,y=0;
+    doc.setFillColor(8,14,32);doc.rect(0,0,LW,20,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(255,255,255);doc.text('HEXALOG',M+1,10);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(100,140,220);doc.text('Logistics · Benelux & France',M+1,16);
+    var cs=p+'/'+qty;doc.setFillColor(245,166,35);doc.roundedRect(LW-22,3,18,14,2,2,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(10,18,40);doc.text(cs,LW-13,12,{align:'center'});
+    y=23;var colW=(LW-M*2-6)/2;
+    doc.setFillColor(230,237,255);doc.rect(M,y,colW,30,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(26,63,143);doc.text('VAN / FROM',M+2,y+5);
+    doc.setFontSize(10);doc.setTextColor(8,14,32);doc.text(CNAMES[s.from]||s.from||'—',M+2,y+12);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,60,100);
+    if(s.fromCity)doc.text(s.fromCity,M+2,y+18);
+    if(s.pickupAddress){var al=doc.splitTextToSize(s.pickupAddress,colW-4);doc.text(al[0]||'',M+2,y+24);}
+    doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(245,166,35);doc.text('→',M+colW+1.5,y+17,{align:'center'});
+    var toX=M+colW+6;doc.setFillColor(220,250,240);doc.rect(toX,y,colW,30,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(0,140,100);doc.text('NAAR / TO',toX+2,y+5);
+    doc.setFontSize(10);doc.setTextColor(8,14,32);doc.text(CNAMES[s.to]||s.to||'—',toX+2,y+12);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,80,60);
+    if(s.toCity)doc.text(s.toCity,toX+2,y+18);
+    if(s.deliveryAddress){var dl=doc.splitTextToSize(s.deliveryAddress,colW-4);doc.text(dl[0]||'',toX+2,y+24);}
+    y+=34;
+    doc.setFillColor(245,248,255);doc.rect(M,y,LW-M*2,14,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(100,120,170);doc.text('ORDERNUMMER',M+2,y+5);
+    doc.setFontSize(12);doc.setTextColor(8,14,32);doc.text(o.id,M+2,y+11.5);
+    doc.setFontSize(7);doc.setTextColor(100,120,170);doc.text('SERVICE',LW*0.58,y+5);
+    doc.setFontSize(9);doc.setTextColor(26,63,143);doc.text(s.service||'LTL',LW*0.58,y+11.5);
+    y+=17;
+    var sC=[M,M+25,M+50,M+75],sL=['GEWICHT','HOOGTE','PALLET TYPE','STUKS'],sV=[(s.weight?s.weight+' kg':'—'),(s.height?s.height+' cm':'—'),(palDims[s.palletType]||s.palletType||'—'),p+' / '+qty];
+    doc.setFillColor(250,251,255);doc.rect(M,y,LW-M*2,18,'F');
+    for(var c=0;c<4;c++){doc.setFont('helvetica','bold');doc.setFontSize(5.5);doc.setTextColor(130,150,190);doc.text(sL[c],sC[c]+1,y+5);doc.setFontSize(8.5);doc.setTextColor(8,14,32);doc.text(sV[c],sC[c]+1,y+13);}
+    y+=21;
+    if(s.deliveryAddress||s.deliveryContact){
+      doc.setFillColor(240,255,248);doc.rect(M,y,LW-M*2,18,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(0,140,100);doc.text('AFLEVERADRES / DELIVERY ADDRESS',M+2,y+5);
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(8,14,32);
+      var fa=[s.deliveryContact,s.deliveryAddress,(s.toCity?s.toCity+', ':'')+(CNAMES[s.to]||s.to||'')].filter(Boolean).join(' · ');
+      var fal=doc.splitTextToSize(fa,LW-M*2-4);doc.text(fal.slice(0,2),M+2,y+11);y+=21;
+    }
+    var bcY=LH-28;doc.setFillColor(255,255,255);doc.rect(0,bcY-3,LW,28,'F');
+    doc.setDrawColor(210,220,240);doc.setLineWidth(0.3);doc.line(0,bcY-3,LW,bcY-3);
+    var bt=o.id+'-'+p+'/'+qty;bkDrawBarcode(doc,bt,M,bcY,LW-M*2,16);
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(60,80,120);doc.text(bt,LW/2,bcY+19,{align:'center'});
+    doc.setFillColor(8,14,32);doc.rect(0,LH-7,LW,7,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(5.5);doc.setTextColor(100,130,180);doc.text('hexalog.eu · info@hexalog.eu',LW/2,LH-2.5,{align:'center'});
+  }
+  doc.save('HexaLog-Labels-'+o.id+'.pdf');
+}
 </script>
 </body>
 </html>

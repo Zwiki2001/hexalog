@@ -345,8 +345,17 @@ function renderOrder(order){
   if(order.status==='delivered'){
     podHtml='<div class="pod-block">';
     podHtml+='<div class="pod-info"><strong>Proof of Delivery Available</strong><span>Signed delivery confirmation</span></div>';
-    podHtml+='<button class="btn-pod" onclick="downloadPOD()">⬇ Download POD</button>';
+    podHtml+='<button class="btn-pod" onclick="downloadPOD()">&#8681; Download POD</button>';
     podHtml+='</div>';
+  }
+
+  // Label block — available from confirmed onwards
+  var labelHtml = '';
+  if(!['pending','cancelled'].includes(order.status)){
+    labelHtml='<div class="pod-block" style="border-color:rgba(245,166,35,.2);background:rgba(245,166,35,.04)">';
+    labelHtml+='<div class="pod-info"><strong>Pallet Labels</strong><span>Print &amp; stick on each pallet</span></div>';
+    labelHtml+='<button class="btn-pod" style="background:linear-gradient(135deg,#B8720A,#F5A623)" onclick="downloadLabels()">&#8681; Download Labels</button>';
+    labelHtml+='</div>';
   }
 
   var html = '<div class="order-head">';
@@ -381,6 +390,8 @@ function renderOrder(order){
   html+='<div class="timeline-wrap"><div class="tl-title">Shipment Timeline</div><div class="timeline">'+tlHtml+'</div></div>';
   // Payment
   if(payHtml) html+=payHtml;
+  // Labels
+  if(labelHtml) html+=labelHtml;
   // POD
   if(podHtml) html+=podHtml;
   html+='</div>';
@@ -462,6 +473,185 @@ async function markPaid(method){
   currentOrder.paymentMethod=method;
   await saveOrderRemote(currentOrder);
   renderOrder(currentOrder);
+}
+
+// ── PALLET LABELS ────────────────────────────────────────────
+function drawBarcode(doc, text, x, y, w, h){
+  // Encode text as binary bits → bars
+  var bits = [];
+  // Start guard bars
+  bits = bits.concat([1,0,1]);
+  for(var i=0;i<text.length;i++){
+    var c = text.charCodeAt(i) % 95 + 32; // printable ASCII
+    // Simple encoding: each char = 7 bits
+    for(var b=6;b>=0;b--) bits.push((c>>b)&1);
+    bits.push(0); // separator
+  }
+  // End guard
+  bits = bits.concat([1,0,1,1]);
+
+  var totalBars = bits.length;
+  var barW = w / totalBars;
+  for(var j=0;j<bits.length;j++){
+    if(bits[j]){
+      doc.setFillColor(0,0,0);
+      doc.rect(x + j*barW, y, barW*0.85, h, 'F');
+    }
+  }
+}
+
+function downloadLabels(){
+  if(!currentOrder) return;
+  var o = currentOrder;
+  var s = o.shipment||{};
+  var qty = parseInt(s.qty)||1;
+  var CNAMES = {BE:'Belgium',NL:'Netherlands',LU:'Luxembourg',FR:'France'};
+  var jsPDF = window.jspdf.jsPDF;
+
+  // A6 portrait: 105 × 148 mm — one label per page
+  var doc = new jsPDF({unit:'mm', format:[105,148], orientation:'portrait'});
+
+  for(var p=1;p<=qty;p++){
+    if(p>1) doc.addPage([105,148]);
+    var LW = 105, LH = 148, M = 5;
+    var y = 0;
+
+    // ── TOP HEADER ──────────────────────────────────────────
+    doc.setFillColor(8,14,32);
+    doc.rect(0,0,LW,20,'F');
+
+    // Company name
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(16);
+    doc.setTextColor(255,255,255);
+    doc.text('HEXALOG', M+1, 10);
+
+    // Tagline
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(100,140,220);
+    doc.text('Logistics · Benelux & France', M+1, 16);
+
+    // Pallet count badge — top right
+    var countStr = p+'/'+qty;
+    doc.setFillColor(245,166,35);
+    doc.roundedRect(LW-22, 3, 18, 14, 2, 2, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(p===qty&&qty===1?14:12);
+    doc.setTextColor(10,18,40);
+    doc.text(countStr, LW-13, 12, {align:'center'});
+
+    y = 23;
+
+    // ── FROM → TO ────────────────────────────────────────────
+    // Left: FROM
+    var colW = (LW - M*2 - 6) / 2;
+    doc.setFillColor(230,237,255);
+    doc.rect(M, y, colW, 30, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(26,63,143);
+    doc.text('VAN / FROM', M+2, y+5);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(8,14,32);
+    doc.text((CNAMES[s.from]||s.from||'—'), M+2, y+12);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(40,60,100);
+    if(s.fromCity) doc.text(s.fromCity, M+2, y+18);
+    if(s.pickupAddress){
+      var addrLines = doc.splitTextToSize(s.pickupAddress, colW-4);
+      doc.text(addrLines[0]||'', M+2, y+24);
+    }
+
+    // Arrow
+    doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(245,166,35);
+    doc.text('→', M+colW+1.5, y+17, {align:'center'});
+
+    // Right: TO
+    var toX = M+colW+6;
+    doc.setFillColor(220,250,240);
+    doc.rect(toX, y, colW, 30, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(0,140,100);
+    doc.text('NAAR / TO', toX+2, y+5);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(8,14,32);
+    doc.text((CNAMES[s.to]||s.to||'—'), toX+2, y+12);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(40,80,60);
+    if(s.toCity) doc.text(s.toCity, toX+2, y+18);
+    if(s.deliveryAddress){
+      var dLines = doc.splitTextToSize(s.deliveryAddress, colW-4);
+      doc.text(dLines[0]||'', toX+2, y+24);
+    }
+
+    y += 34;
+
+    // ── ORDER INFO ROW ───────────────────────────────────────
+    doc.setFillColor(245,248,255);
+    doc.rect(M, y, LW-M*2, 14, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(100,120,170);
+    doc.text('ORDERNUMMER', M+2, y+5);
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(8,14,32);
+    doc.text(o.id, M+2, y+11.5);
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(100,120,170);
+    doc.text('SERVICE', LW*0.58, y+5);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(26,63,143);
+    doc.text((s.service||'LTL'), LW*0.58, y+11.5);
+    y += 17;
+
+    // ── SPECS ────────────────────────────────────────────────
+    doc.setDrawColor(210,220,240); doc.setLineWidth(0.3);
+    var specCols = [M, M+25, M+50, M+75];
+    var specLabels = ['GEWICHT','HOOGTE','PALLET TYPE','STUKS'];
+    var palDims = {
+      'Euro Pallet':'120×80cm','Block Pallet':'120×100cm',
+      'Half Pallet':'80×60cm','Industry Pallet':'120×120cm','Custom':'—'
+    };
+    var specVals = [
+      (s.weight?(s.weight+' kg'):'—'),
+      (s.height?(s.height+' cm'):'—'),
+      (palDims[s.palletType]||s.palletType||'—'),
+      p+' / '+qty
+    ];
+    doc.setFillColor(250,251,255);
+    doc.rect(M, y, LW-M*2, 18, 'F');
+    for(var c=0;c<4;c++){
+      doc.setFont('helvetica','bold'); doc.setFontSize(5.5); doc.setTextColor(130,150,190);
+      doc.text(specLabels[c], specCols[c]+1, y+5);
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(8,14,32);
+      doc.text(specVals[c], specCols[c]+1, y+13);
+    }
+    y += 21;
+
+    // ── DELIVERY ADDRESS FULL ────────────────────────────────
+    if(s.deliveryAddress||s.deliveryContact){
+      doc.setFillColor(240,255,248);
+      doc.rect(M, y, LW-M*2, 18, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(0,140,100);
+      doc.text('AFLEVERADRES / DELIVERY ADDRESS', M+2, y+5);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(8,14,32);
+      var fullAddr = [s.deliveryContact, s.deliveryAddress, (s.toCity?s.toCity+', ':'')+(CNAMES[s.to]||s.to||'')].filter(Boolean).join('  ·  ');
+      var adLines = doc.splitTextToSize(fullAddr, LW-M*2-4);
+      doc.text(adLines.slice(0,2), M+2, y+11);
+      y += 21;
+    }
+
+    // ── BARCODE ──────────────────────────────────────────────
+    var bcY = LH - 28;
+    doc.setFillColor(255,255,255);
+    doc.rect(0, bcY-3, LW, 28, 'F');
+    doc.setDrawColor(210,220,240); doc.setLineWidth(0.3);
+    doc.line(0, bcY-3, LW, bcY-3);
+
+    var barcodeText = o.id+'-'+p+'/'+qty;
+    drawBarcode(doc, barcodeText, M, bcY, LW-M*2, 16);
+
+    // Barcode label
+    doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(60,80,120);
+    doc.text(barcodeText, LW/2, bcY+19, {align:'center'});
+
+    // Bottom strip
+    doc.setFillColor(8,14,32);
+    doc.rect(0, LH-7, LW, 7, 'F');
+    doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(100,130,180);
+    doc.text('hexalog.eu  ·  info@hexalog.eu', LW/2, LH-2.5, {align:'center'});
+  }
+
+  doc.save('HexaLog-Labels-'+o.id+'.pdf');
 }
 
 // ── INVOICE PDF ──────────────────────────────────────────────
