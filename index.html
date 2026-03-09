@@ -767,8 +767,132 @@ footer{background:#0B1220;border-top:1px solid rgba(26,63,143,.3);padding:56px 0
 .modal-btns{display:flex;flex-direction:column;gap:10px;margin-top:24px}
 
 /* ======================================================
-   AOS ANIMATIONS
+   RESPONSIVE — TABLET & MOBILE
 ====================================================== */
+
+/* ── Mobile language bar (show compact in mobile menu) ── */
+.mobile-lang{display:none;flex-wrap:wrap;gap:6px;padding:10px 0}
+.mobile-lang button{background:none;border:1px solid rgba(255,255,255,.12);color:#8094B8;border-radius:6px;padding:5px 10px;font-size:.78rem;cursor:pointer}
+.mobile-lang button.active{background:linear-gradient(135deg,#1A3F8F,#F5A623);color:#fff;border-color:transparent}
+@media(max-width:860px){.mobile-lang{display:flex}}
+
+/* ── Hero ── */
+@media(max-width:640px){
+  .hero-content{padding:90px 16px 48px}
+  .hero-stats{padding:16px 12px;gap:0}
+  .stat{padding:8px 12px}
+  .stat-num{font-size:1.4rem}
+  .stat-div{height:28px}
+  .hero-btns{flex-direction:column;align-items:center}
+  .hero-btns .btn-primary,.hero-btns .btn-outline{width:100%;max-width:320px;justify-content:center}
+}
+
+/* ── Section padding ── */
+@media(max-width:640px){
+  section{padding:56px 0!important}
+  .container{padding:0 16px!important}
+  .sec-label{font-size:.68rem}
+  h2{font-size:clamp(1.5rem,6vw,2rem)!important}
+}
+
+/* ── Calculator ── */
+@media(max-width:640px){
+  .svc-row{grid-template-columns:1fr!important}
+  .pallet-grid{grid-template-columns:repeat(2,1fr)!important}
+  .extras-grid{grid-template-columns:1fr!important}
+  .dims-row{grid-template-columns:1fr 1fr!important}
+  .two-col{grid-template-columns:1fr!important}
+  .route-grid{grid-template-columns:1fr!important;gap:8px!important}
+  .arrow-col{display:none!important}
+  .calc-panel{padding:20px 14px!important}
+  .calc-section-title{font-size:.8rem}
+  .addr-cards{grid-template-columns:1fr!important}
+}
+@media(max-width:400px){
+  .pallet-grid{grid-template-columns:1fr 1fr!important}
+  .pal-name{font-size:.7rem}
+  .pal-dim{font-size:.62rem}
+}
+
+/* ── Result panel ── */
+@media(max-width:1100px){
+  .result-panel{position:static;margin-top:24px}
+}
+@media(max-width:640px){
+  .result-active{padding:20px 16px!important}
+  .bline{flex-wrap:wrap;gap:6px}
+  .price-display{font-size:2.2rem!important}
+}
+
+/* ── Rates table — horizontal scroll on small screens ── */
+@media(max-width:640px){
+  .transit-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px}
+  .transit-table{min-width:520px}
+  .transit-table th,.transit-table td{padding:11px 12px;font-size:.78rem}
+  .rates-intro{gap:10px}
+}
+
+/* ── Services ── */
+@media(max-width:480px){
+  .services-grid{grid-template-columns:1fr!important}
+  .svc-card{padding:20px 16px}
+}
+
+/* ── Why / Comparison ── */
+@media(max-width:640px){
+  .cmp-row{padding:12px 12px}
+  .cmp-flow{gap:3px;flex-wrap:wrap}
+  .cmp-node{font-size:.68rem;padding:7px 9px}
+  .cmp-arrow-good,.cmp-arrow-bad{font-size:.7rem}
+  .cmp-pill{min-width:100%;font-size:.78rem}
+  .hex-map{width:240px;height:240px}
+  .mc svg{width:82px;height:90px}
+  #mc-BE{left:8px;top:78px}
+  #mc-LU{right:8px;top:78px}
+}
+
+/* ── Contact form ── */
+@media(max-width:480px){
+  .contact-form{padding:20px 14px}
+}
+
+/* ── Footer ── */
+@media(max-width:480px){
+  .footer-links{grid-template-columns:1fr!important}
+  .footer-bottom{flex-direction:column;align-items:center;text-align:center}
+  .footer-grid{padding:0 16px 36px}
+}
+
+/* ── Modal ── */
+@media(max-width:500px){
+  .modal-bg{padding:12px}
+  .modal{padding:24px 16px;border-radius:12px;max-height:90vh;overflow-y:auto}
+  .modal h3{font-size:1.1rem}
+  .ff input,.ff textarea,.sel-styled{font-size:.85rem}
+  .addr-card{padding:14px 12px!important}
+  .truck-button{width:100%!important}
+}
+
+/* ── Booking form inside modal ── */
+@media(max-width:500px){
+  .otype-row{grid-template-columns:1fr 1fr!important}
+  .otype-btn{padding:10px 10px}
+  .otype-icon{width:32px;height:32px}
+  .otype-text strong{font-size:.8rem}
+  .otype-text small{font-size:.66rem}
+  #bkOrderId{font-size:1.4rem!important}
+}
+
+/* ── Portal / Admin — nav wrapping ── */
+@media(max-width:600px){
+  .nav-inner{flex-wrap:wrap;gap:8px}
+  .logo-wrap .logo-text{font-size:1.1rem!important}
+}
+
+/* ── General text overflow guard ── */
+*{word-break:break-word}
+table{word-break:normal}
+</style>
 [data-aos]{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
 [data-aos=fade-right]{transform:translateX(-26px)}
 [data-aos=fade-left]{transform:translateX(26px)}
@@ -880,6 +1004,14 @@ footer{background:#0B1220;border-top:1px solid rgba(26,63,143,.3);padding:56px 0
     <a href="#services">Services</a>
     <a href="#why">About</a>
     <a href="#contact">Contact</a>
+    <div class="mobile-lang" id="mobileLang">
+      <button onclick="setLang('en')" data-lang="en">EN</button>
+      <button onclick="setLang('nl')" data-lang="nl">NL</button>
+      <button onclick="setLang('fr')" data-lang="fr">FR</button>
+      <button onclick="setLang('de')" data-lang="de">DE</button>
+      <button onclick="setLang('es')" data-lang="es">ES</button>
+      <button onclick="setLang('ar')" data-lang="ar">AR</button>
+    </div>
   </div>
 </nav>
 
@@ -1313,6 +1445,7 @@ footer{background:#0B1220;border-top:1px solid rgba(26,63,143,.3);padding:56px 0
     </div>
 
     <div data-aos>
+      <div class="transit-table-wrap">
       <table class="transit-table">
         <thead>
           <tr>
@@ -1354,6 +1487,7 @@ footer{background:#0B1220;border-top:1px solid rgba(26,63,143,.3);padding:56px 0
           </tr>
         </tbody>
       </table>
+      </div>
       <p style="margin-top:14px;font-size:.78rem;color:#3D5080;text-align:center">Rates shown for standard LTL Euro pallet (120&times;80 cm, max 500 kg). FTL gets &minus;18%. Weekend delivery +&euro;35/pallet. Express 24h +&euro;40/pallet.</p>
     </div>
   </div>
@@ -2637,11 +2771,15 @@ function applyLang(lang) {
 }
 
 // Language switcher
+function setLang(lang) {
+  document.querySelectorAll('.lang-bar button').forEach(function(b){b.classList.remove('active');if(b.dataset.lang===lang)b.classList.add('active');});
+  document.querySelectorAll('#mobileLang button').forEach(function(b){b.classList.remove('active');if(b.dataset.lang===lang)b.classList.add('active');});
+  applyLang(lang);
+}
+
 document.querySelectorAll('.lang-bar button').forEach(function(btn){
   btn.addEventListener('click',function(){
-    document.querySelectorAll('.lang-bar button').forEach(function(b){b.classList.remove('active')});
-    btn.classList.add('active');
-    applyLang(btn.dataset.lang);
+    setLang(btn.dataset.lang);
   });
 });
 
