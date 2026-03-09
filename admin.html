@@ -308,7 +308,7 @@ input,textarea,button,select{font-family:inherit}
 
       <div class="yeti-input-group yeti-ig2">
         <label for="loginPassword" id="loginPasswordLabel">Password</label>
-        <input type="password" id="loginPassword" id="pwInput" autocomplete="off"/>
+        <input type="password" id="loginPassword" autocomplete="off"/>
         <label id="showPasswordToggle" for="showPasswordCheck">Show
           <input id="showPasswordCheck" type="checkbox"/>
           <div class="yeti-indicator"></div>
@@ -1012,45 +1012,49 @@ setInterval(async function(){
   await fetchOrders();
   renderStats(); renderFilters(); renderOrders();
 }, 30000);
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 <script src="https://assets.codepen.io/16327/MorphSVGPlugin3.min.js"></script>
 <script>
-gsap.registerPlugin(MorphSVGPlugin);
-var _emailEl=document.getElementById('loginEmail'),
-    _passEl=document.getElementById('loginPassword'),
-    _showChk=document.getElementById('showPasswordCheck'),
-    _showTog=document.getElementById('showPasswordToggle'),
-    _svgC=document.querySelector('.svgContainer'),
-    _twoF=document.querySelector('.twoFingers'),
-    _armL=document.querySelector('.armL'),_armR=document.querySelector('.armR'),
-    _eyeL=document.querySelector('.eyeL'),_eyeR=document.querySelector('.eyeR'),
-    _nose=document.querySelector('.nose'),_mouth=document.querySelector('.mouth'),
-    _mBG=document.querySelector('.mouthBG'),_mSmBG=document.querySelector('.mouthSmallBG'),
-    _mMeBG=document.querySelector('.mouthMediumBG'),_mLaBG=document.querySelector('.mouthLargeBG'),
-    _mMkP=document.querySelector('#mouthMaskPath'),_mOut=document.querySelector('.mouthOutline'),
-    _tooth=document.querySelector('.tooth'),_tongue=document.querySelector('.tongue'),
-    _chin=document.querySelector('.chin'),_face=document.querySelector('.face'),
-    _ebrow=document.querySelector('.eyebrow'),
-    _oEarL=document.querySelector('.earL .outerEar'),_oEarR=document.querySelector('.earR .outerEar'),
-    _eHairL=document.querySelector('.earL .earHair'),_eHairR=document.querySelector('.earR .earHair'),
-    _hair=document.querySelector('.hair'),
-    _bodyBG=document.querySelector('.bodyBGnormal'),_bodyBGc=document.querySelector('.bodyBGchanged');
+window.addEventListener('load', function(){
+  if(typeof gsap === 'undefined' || typeof MorphSVGPlugin === 'undefined') return;
+  gsap.registerPlugin(MorphSVGPlugin);
 
-var _active,_emailIdx,_scCenter,_svgPos,_emailPos,_emailScrMax,
-    _chinMin=.5,_dFromC,_mouthSt='small',_blinking,_eyeScale=1,_eyesCov=false,_showClicked=false;
-var _eLCoords,_eRCoords,_nCoords,_mCoords;
+  var _emailEl=document.getElementById('loginEmail'),
+      _passEl=document.getElementById('loginPassword'),
+      _showChk=document.getElementById('showPasswordCheck'),
+      _showTog=document.getElementById('showPasswordToggle'),
+      _svgC=document.querySelector('.svgContainer'),
+      _twoF=document.querySelector('.twoFingers'),
+      _armL=document.querySelector('.armL'),_armR=document.querySelector('.armR'),
+      _eyeL=document.querySelector('.eyeL'),_eyeR=document.querySelector('.eyeR'),
+      _nose=document.querySelector('.nose'),_mouth=document.querySelector('.mouth'),
+      _mBG=document.querySelector('.mouthBG'),_mSmBG=document.querySelector('.mouthSmallBG'),
+      _mMeBG=document.querySelector('.mouthMediumBG'),_mLaBG=document.querySelector('.mouthLargeBG'),
+      _mMkP=document.querySelector('#mouthMaskPath'),_mOut=document.querySelector('.mouthOutline'),
+      _tooth=document.querySelector('.tooth'),_tongue=document.querySelector('.tongue'),
+      _chin=document.querySelector('.chin'),_face=document.querySelector('.face'),
+      _ebrow=document.querySelector('.eyebrow'),
+      _oEarL=document.querySelector('.earL .outerEar'),_oEarR=document.querySelector('.earR .outerEar'),
+      _eHairL=document.querySelector('.earL .earHair'),_eHairR=document.querySelector('.earR .earHair'),
+      _hair=document.querySelector('.hair'),
+      _bodyBG=document.querySelector('.bodyBGnormal'),_bodyBGc=document.querySelector('.bodyBGchanged');
 
-function _getPos(el){var x=0,y=0;while(el){if(el.tagName=='BODY'){x+=(el.offsetLeft-(el.scrollLeft||document.documentElement.scrollLeft)+el.clientLeft);y+=(el.offsetTop-(el.scrollTop||document.documentElement.scrollTop)+el.clientTop);}else{x+=(el.offsetLeft-el.scrollLeft+el.clientLeft);y+=(el.offsetTop-el.scrollTop+el.clientTop);}el=el.offsetParent;}return{x:x,y:y};}
-function _getAngle(x1,y1,x2,y2){return Math.atan2(y1-y2,x1-x2);}
-function _randInt(max){return Math.floor(Math.random()*Math.floor(max));}
+  var _active,_emailScrMax,_scCenter,_svgPos,_emailPos,
+      _chinMin=.5,_dFromC=0,_mouthSt='small',_blinking,_eyeScale=1,_eyesCov=false,_showClicked=false;
+  var _eLCoords,_eRCoords,_nCoords,_mCoords;
 
-function _calcFace(){
+  function _getPos(el){var x=0,y=0;while(el){if(el.tagName=='BODY'){x+=(el.offsetLeft-(el.scrollLeft||document.documentElement.scrollLeft)+el.clientLeft);y+=(el.offsetTop-(el.scrollTop||document.documentElement.scrollTop)+el.clientTop);}else{x+=(el.offsetLeft-el.scrollLeft+el.clientLeft);y+=(el.offsetTop-el.scrollTop+el.clientTop);}el=el.offsetParent;}return{x:x,y:y};}
+  function _getAngle(x1,y1,x2,y2){return Math.atan2(y1-y2,x1-x2);}
+  function _randInt(max){return Math.floor(Math.random()*Math.floor(max));}
+
+  function _calcFace(){
     var cPos=_emailEl.selectionEnd||_emailEl.value.length,div=document.createElement('div'),span=document.createElement('span'),cs=getComputedStyle(_emailEl);
     [].forEach.call(cs,function(p){div.style[p]=cs[p];});
-    div.style.position='absolute';document.body.appendChild(div);
+    div.style.position='absolute';div.style.visibility='hidden';document.body.appendChild(div);
     div.textContent=_emailEl.value.substr(0,cPos);span.textContent=_emailEl.value.substr(cPos)||'.';div.appendChild(span);
-    var caret,eLa,eRa,nA,mA,eLx,eLy,eRx,eRy,nX,nY,mX,mY,mR,cX,cY,cS,fX,fY,fSk,eSk,oeX,oeY,hX;
-    if(_emailEl.scrollWidth<=_emailScrMax){caret=_getPos(span);_dFromC=_scCenter-(caret.x+_emailPos.x);eLa=_getAngle(_eLCoords.x,_eLCoords.y,_emailPos.x+caret.x,_emailPos.y+25);eRa=_getAngle(_eRCoords.x,_eRCoords.y,_emailPos.x+caret.x,_emailPos.y+25);nA=_getAngle(_nCoords.x,_nCoords.y,_emailPos.x+caret.x,_emailPos.y+25);mA=_getAngle(_mCoords.x,_mCoords.y,_emailPos.x+caret.x,_emailPos.y+25);}
+    var eLa,eRa,nA,mA,eLx,eLy,eRx,eRy,nX,nY,mX,mY,mR,cX,cY,cS,fX,fY,fSk,eSk,oeX,oeY,hX;
+    if(_emailEl.scrollWidth<=_emailScrMax){var caret=_getPos(span);_dFromC=_scCenter-(caret.x+_emailPos.x);eLa=_getAngle(_eLCoords.x,_eLCoords.y,_emailPos.x+caret.x,_emailPos.y+25);eRa=_getAngle(_eRCoords.x,_eRCoords.y,_emailPos.x+caret.x,_emailPos.y+25);nA=_getAngle(_nCoords.x,_nCoords.y,_emailPos.x+caret.x,_emailPos.y+25);mA=_getAngle(_mCoords.x,_mCoords.y,_emailPos.x+caret.x,_emailPos.y+25);}
     else{eLa=_getAngle(_eLCoords.x,_eLCoords.y,_emailPos.x+_emailScrMax,_emailPos.y+25);eRa=_getAngle(_eRCoords.x,_eRCoords.y,_emailPos.x+_emailScrMax,_emailPos.y+25);nA=_getAngle(_nCoords.x,_nCoords.y,_emailPos.x+_emailScrMax,_emailPos.y+25);mA=_getAngle(_mCoords.x,_mCoords.y,_emailPos.x+_emailScrMax,_emailPos.y+25);}
     eLx=Math.cos(eLa)*20;eLy=Math.sin(eLa)*10;eRx=Math.cos(eRa)*20;eRy=Math.sin(eRa)*10;
     nX=Math.cos(nA)*23;nY=Math.sin(nA)*10;mX=Math.cos(mA)*23;mY=Math.sin(mA)*10;mR=Math.cos(mA)*6;
@@ -1066,40 +1070,46 @@ function _calcFace(){
     gsap.to(_eHairL,1,{x:-oeX,y:-oeY,ease:'expo.out'});gsap.to(_eHairR,1,{x:-oeX,y:oeY,ease:'expo.out'});
     gsap.to(_hair,1,{x:hX,scaleY:1.2,transformOrigin:'center bottom',ease:'expo.out'});
     document.body.removeChild(div);
-}
-function _onEmailInput(){
+  }
+
+  function _onEmailInput(){
     _calcFace();
     var v=_emailEl.value;
     if(v.length>0){
-        if(v.includes('@')){_mouthSt='large';gsap.to([_mBG,_mOut,_mMkP],1,{morphSVG:_mLaBG,ease:'expo.out'});gsap.to(_tooth,1,{x:3,y:-2,ease:'expo.out'});gsap.to(_tongue,1,{y:2,ease:'expo.out'});gsap.to([_eyeL,_eyeR],1,{scaleX:.65,scaleY:.65,ease:'expo.out',transformOrigin:'center center'});_eyeScale=.65;}
-        else{_mouthSt='medium';gsap.to([_mBG,_mOut,_mMkP],1,{morphSVG:_mMeBG,shapeIndex:8,ease:'expo.out'});gsap.to(_tooth,1,{x:0,y:0,ease:'expo.out'});gsap.to(_tongue,1,{x:0,y:1,ease:'expo.out'});gsap.to([_eyeL,_eyeR],1,{scaleX:.85,scaleY:.85,ease:'expo.out'});_eyeScale=.85;}
-    }else{_mouthSt='small';gsap.to([_mBG,_mOut,_mMkP],1,{morphSVG:_mSmBG,shapeIndex:9,ease:'expo.out'});gsap.to(_tooth,1,{x:0,y:0,ease:'expo.out'});gsap.to(_tongue,1,{y:0,ease:'expo.out'});gsap.to([_eyeL,_eyeR],1,{scaleX:1,scaleY:1,ease:'expo.out'});_eyeScale=1;}
-}
-function _resetFace(){gsap.to([_eyeL,_eyeR],1,{x:0,y:0,ease:'expo.out'});gsap.to(_nose,1,{x:0,y:0,scaleX:1,scaleY:1,ease:'expo.out'});gsap.to(_mouth,1,{x:0,y:0,rotation:0,ease:'expo.out'});gsap.to(_chin,1,{x:0,y:0,scaleY:1,ease:'expo.out'});gsap.to([_face,_ebrow],1,{x:0,y:0,skewX:0,ease:'expo.out'});gsap.to([_oEarL,_oEarR,_eHairL,_eHairR,_hair],1,{x:0,y:0,scaleY:1,ease:'expo.out'});}
-function _coverEyes(){gsap.killTweensOf([_armL,_armR]);gsap.set([_armL,_armR],{visibility:'visible'});gsap.to(_armL,.45,{x:-93,y:10,rotation:0,ease:'quad.out'});gsap.to(_armR,.45,{x:-93,y:10,rotation:0,ease:'quad.out',delay:.1});gsap.to(_bodyBG,.45,{morphSVG:_bodyBGc,ease:'quad.out'});_eyesCov=true;}
-function _uncoverEyes(){gsap.killTweensOf([_armL,_armR]);gsap.to(_armL,1.35,{y:220,ease:'quad.out'});gsap.to(_armL,1.35,{rotation:105,ease:'quad.out',delay:.1});gsap.to(_armR,1.35,{y:220,ease:'quad.out'});gsap.to(_armR,1.35,{rotation:-105,ease:'quad.out',delay:.1,onComplete:function(){gsap.set([_armL,_armR],{visibility:'hidden'});}});gsap.to(_bodyBG,.45,{morphSVG:_bodyBG,ease:'quad.out'});_eyesCov=false;}
-function _startBlink(d){_blinking=gsap.to([_eyeL,_eyeR],.1,{delay:d||1,scaleY:0,yoyo:true,repeat:1,transformOrigin:'center center',onComplete:function(){_startBlink(_randInt(12));}});}
+      if(v.includes('@')){_mouthSt='large';gsap.to([_mBG,_mOut,_mMkP],1,{morphSVG:_mLaBG,ease:'expo.out'});gsap.to(_tooth,1,{x:3,y:-2,ease:'expo.out'});gsap.to(_tongue,1,{y:2,ease:'expo.out'});gsap.to([_eyeL,_eyeR],1,{scaleX:.65,scaleY:.65,ease:'expo.out',transformOrigin:'center center'});_eyeScale=.65;}
+      else{_mouthSt='medium';gsap.to([_mBG,_mOut,_mMkP],1,{morphSVG:_mMeBG,shapeIndex:8,ease:'expo.out'});gsap.to(_tooth,1,{x:0,y:0,ease:'expo.out'});gsap.to(_tongue,1,{x:0,y:1,ease:'expo.out'});gsap.to([_eyeL,_eyeR],1,{scaleX:.85,scaleY:.85,ease:'expo.out'});_eyeScale=.85;}
+    } else {
+      _mouthSt='small';gsap.to([_mBG,_mOut,_mMkP],1,{morphSVG:_mSmBG,shapeIndex:9,ease:'expo.out'});gsap.to(_tooth,1,{x:0,y:0,ease:'expo.out'});gsap.to(_tongue,1,{y:0,ease:'expo.out'});gsap.to([_eyeL,_eyeR],1,{scaleX:1,scaleY:1,ease:'expo.out'});_eyeScale=1;
+    }
+  }
 
-// init
-_svgPos=_getPos(_svgC);_emailPos=_getPos(_emailEl);
-_scCenter=_svgPos.x+(_svgC.offsetWidth/2);
-_eLCoords={x:_svgPos.x+84,y:_svgPos.y+76};_eRCoords={x:_svgPos.x+113,y:_svgPos.y+76};
-_nCoords={x:_svgPos.x+97,y:_svgPos.y+81};_mCoords={x:_svgPos.x+100,y:_svgPos.y+100};
-gsap.set(_armL,{x:-93,y:220,rotation:105,transformOrigin:'top left'});
-gsap.set(_armR,{x:-93,y:220,rotation:-105,transformOrigin:'top right'});
-gsap.set(_mouth,{transformOrigin:'center center'});
-_startBlink(5);_emailScrMax=_emailEl.scrollWidth;
+  function _resetFace(){gsap.to([_eyeL,_eyeR],1,{x:0,y:0,ease:'expo.out'});gsap.to(_nose,1,{x:0,y:0,scaleX:1,scaleY:1,ease:'expo.out'});gsap.to(_mouth,1,{x:0,y:0,rotation:0,ease:'expo.out'});gsap.to(_chin,1,{x:0,y:0,scaleY:1,ease:'expo.out'});gsap.to([_face,_ebrow],1,{x:0,y:0,skewX:0,ease:'expo.out'});gsap.to([_oEarL,_oEarR,_eHairL,_eHairR,_hair],1,{x:0,y:0,scaleY:1,ease:'expo.out'});}
+  function _coverEyes(){gsap.killTweensOf([_armL,_armR]);gsap.set([_armL,_armR],{visibility:'visible'});gsap.to(_armL,.45,{x:-93,y:10,rotation:0,ease:'quad.out'});gsap.to(_armR,.45,{x:-93,y:10,rotation:0,ease:'quad.out',delay:.1});gsap.to(_bodyBG,.45,{morphSVG:_bodyBGc,ease:'quad.out'});_eyesCov=true;}
+  function _uncoverEyes(){gsap.killTweensOf([_armL,_armR]);gsap.to(_armL,1.35,{y:220,ease:'quad.out'});gsap.to(_armL,1.35,{rotation:105,ease:'quad.out',delay:.1});gsap.to(_armR,1.35,{y:220,ease:'quad.out'});gsap.to(_armR,1.35,{rotation:-105,ease:'quad.out',delay:.1,onComplete:function(){gsap.set([_armL,_armR],{visibility:'hidden'});}});gsap.to(_bodyBG,.45,{morphSVG:_bodyBG,ease:'quad.out'});_eyesCov=false;}
+  function _startBlink(d){_blinking=gsap.to([_eyeL,_eyeR],.1,{delay:d||1,scaleY:0,yoyo:true,repeat:1,transformOrigin:'center center',onComplete:function(){_startBlink(_randInt(12));}});}
 
-_emailEl.addEventListener('focus',function(e){_active='email';document.getElementById('yetiIG1').classList.add('focusWithText');_onEmailInput();});
-_emailEl.addEventListener('blur',function(e){_active=null;setTimeout(function(){if(_active=='email')return;if(e.target.value=='')document.getElementById('yetiIG1').classList.remove('focusWithText');_resetFace();},100);});
-_emailEl.addEventListener('input',_onEmailInput);
-_passEl.addEventListener('focus',function(){_active='password';if(!_eyesCov)_coverEyes();});
-_passEl.addEventListener('blur',function(){_active=null;setTimeout(function(){if(_active=='toggle'||_active=='password')return;_uncoverEyes();},100);});
-_showTog.addEventListener('mousedown',function(){_showClicked=true;});
-_showTog.addEventListener('mouseup',function(){_showClicked=false;});
-_showChk.addEventListener('focus',function(){_active='toggle';if(!_eyesCov)_coverEyes();});
-_showChk.addEventListener('blur',function(){_active=null;if(!_showClicked){setTimeout(function(){if(_active=='password'||_active=='toggle')return;_uncoverEyes();},100);}});
-_showChk.addEventListener('change',function(e){setTimeout(function(){if(e.target.checked){_passEl.type='text';gsap.to(_twoF,.35,{transformOrigin:'bottom left',rotation:30,x:-9,y:-2,ease:'power2.inOut'});}else{_passEl.type='password';gsap.to(_twoF,.35,{transformOrigin:'bottom left',rotation:0,x:0,y:0,ease:'power2.inOut'});}},100);});
+  // ── INIT ──
+  _svgPos=_getPos(_svgC);_emailPos=_getPos(_emailEl);
+  _scCenter=_svgPos.x+(_svgC.offsetWidth/2);
+  _eLCoords={x:_svgPos.x+84,y:_svgPos.y+76};_eRCoords={x:_svgPos.x+113,y:_svgPos.y+76};
+  _nCoords={x:_svgPos.x+97,y:_svgPos.y+81};_mCoords={x:_svgPos.x+100,y:_svgPos.y+100};
+  gsap.set(_armL,{x:-93,y:220,rotation:105,transformOrigin:'top left'});
+  gsap.set(_armR,{x:-93,y:220,rotation:-105,transformOrigin:'top right'});
+  gsap.set(_mouth,{transformOrigin:'center center'});
+  _startBlink(5);
+  _emailScrMax=_emailEl.scrollWidth;
+
+  _emailEl.addEventListener('focus',function(e){_active='email';document.getElementById('yetiIG1').classList.add('focusWithText');_onEmailInput();});
+  _emailEl.addEventListener('blur',function(e){_active=null;setTimeout(function(){if(_active=='email')return;if(e.target.value=='')document.getElementById('yetiIG1').classList.remove('focusWithText');_resetFace();},100);});
+  _emailEl.addEventListener('input',_onEmailInput);
+  _passEl.addEventListener('focus',function(){_active='password';if(!_eyesCov)_coverEyes();});
+  _passEl.addEventListener('blur',function(){_active=null;setTimeout(function(){if(_active=='toggle'||_active=='password')return;_uncoverEyes();},100);});
+  _showTog.addEventListener('mousedown',function(){_showClicked=true;});
+  _showTog.addEventListener('mouseup',function(){_showClicked=false;});
+  _showChk.addEventListener('focus',function(){_active='toggle';if(!_eyesCov)_coverEyes();});
+  _showChk.addEventListener('blur',function(){_active=null;if(!_showClicked){setTimeout(function(){if(_active=='password'||_active=='toggle')return;_uncoverEyes();},100);}});
+  _showChk.addEventListener('change',function(e){setTimeout(function(){if(e.target.checked){_passEl.type='text';gsap.to(_twoF,.35,{transformOrigin:'bottom left',rotation:30,x:-9,y:-2,ease:'power2.inOut'});}else{_passEl.type='password';gsap.to(_twoF,.35,{transformOrigin:'bottom left',rotation:0,x:0,y:0,ease:'power2.inOut'});}},100);});
+});
 </script>
 </body>
 </html>
