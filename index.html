@@ -2151,33 +2151,37 @@ document.getElementById('bkSubmit').addEventListener('click', async function(){
   var truck = btn.querySelector('.truck');
   btn.classList.add('animation');
 
-  gsap.to(btn, {'--box-s':1,'--box-o':1,duration:.3,delay:.5});
-  gsap.to(box, {x:0,duration:.4,delay:.7});
-  gsap.to(btn, {'--hx':-5,'--bx':50,duration:.18,delay:.92});
-  gsap.to(box, {y:0,duration:.1,delay:1.15});
+  // Phase 1: box appears and loads onto truck (0s – 2.5s)
+  gsap.to(btn, {'--box-s':1,'--box-o':1,duration:.5,delay:.8});
+  gsap.to(box, {x:0,duration:.6,delay:1.1});
+  gsap.to(btn, {'--hx':-5,'--bx':50,duration:.3,delay:1.6});
+  gsap.to(box, {y:0,duration:.2,delay:2.0});
   gsap.set(btn, {'--truck-y':0,'--truck-y-n':-26});
-  gsap.to(btn, {'--truck-y':1,'--truck-y-n':-25,duration:.2,delay:1.25,
+
+  // Phase 2: truck bounces up, then drives across (2.5s – 7s)
+  gsap.to(btn, {'--truck-y':1,'--truck-y-n':-25,duration:.3,delay:2.2,
     onComplete:function(){
       gsap.timeline({
         onComplete:function(){
           btn.classList.add('done');
-          // After animation completes, show confirmation step
+          // Phase 3: "Order Placed ✓" visible for 2 seconds, then show confirmation
           setTimeout(function(){
             document.getElementById('modalStep1').style.display='none';
             document.getElementById('modalStep2').style.display='block';
-            // Reset button for future use
+            // Reset button state for future use
             btn.classList.remove('animation','done');
             gsap.set(truck,{x:4});
             gsap.set(btn,{'--progress':0,'--hx':0,'--bx':0,'--box-s':.5,'--box-o':0,'--truck-y':0,'--truck-y-n':-26});
             gsap.set(box,{x:-24,y:-6});
-          }, 600);
+          }, 2000);
         }
       })
-      .to(truck,{x:0,duration:.4})
-      .to(truck,{x:40,duration:1})
-      .to(truck,{x:20,duration:.6})
-      .to(truck,{x:96,duration:.4});
-      gsap.to(btn,{'--progress':1,duration:2.4,ease:'power2.in'});
+      .to(truck,{x:0,duration:.6})        // truck rolls forward
+      .to(truck,{x:30,duration:1.4})       // slow cruise
+      .to(truck,{x:55,duration:1.0})       // mid road
+      .to(truck,{x:35,duration:.8})        // slight brake
+      .to(truck,{x:110,duration:.7});      // accelerates off screen
+      gsap.to(btn,{'--progress':1,duration:4.5,ease:'power1.inOut'});
     }
   });
 });
