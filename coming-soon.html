@@ -379,7 +379,17 @@ async function submitNotify(){
     return;
   }
   if(error){
-    alert('Something went wrong. Please try again.');
+    var msg = 'Something went wrong. Please try again.';
+    if(error.message) msg = error.message;
+    document.querySelector('.notify-form button').textContent = 'Try Again';
+    var errEl = document.getElementById('notifyErr');
+    if(!errEl){
+      errEl = document.createElement('p');
+      errEl.id = 'notifyErr';
+      errEl.style.cssText = 'color:#ff6b6b;font-size:.82rem;margin-top:8px;text-align:center';
+      document.getElementById('notifyForm').after(errEl);
+    }
+    errEl.textContent = '⚠ ' + msg;
     return;
   }
 
