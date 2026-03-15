@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>HexaLog — Coming Soon</title>
   <meta name="description" content="HexaLog — Benelux & France logistics specialists. Launching 01-01-2027."/>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -349,14 +350,41 @@ function tick(){
 tick();
 setInterval(tick, 1000);
 
+// ── Supabase ───────────────────────────────────────────────
+var _sb = supabase.createClient(
+  'https://mjcuhyujqpzgybbqeaxd.supabase.co',
+  'sb_publishable_1DZMiEy3eonWMiWKy7B_dA_t0IhBff0'
+);
+
 // ── Notify ─────────────────────────────────────────────────
-function submitNotify(){
-  var email = document.getElementById('notifyEmail').value.trim();
+async function submitNotify(){
+  var emailInput = document.getElementById('notifyEmail');
+  var btn = document.querySelector('.notify-form button');
+  var email = emailInput.value.trim();
   if(!email || !email.includes('@')){ alert('Please enter a valid email address.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  var { error } = await _sb.from('waitlist').insert({ email: email });
+
+  btn.disabled = false;
+  btn.textContent = 'Notify Me';
+
+  if(error && error.code === '23505'){
+    // Already registered (unique constraint)
+    document.getElementById('notifyForm').style.display = 'none';
+    document.getElementById('notifyOk').textContent = '✓ You\'re already on the list! We\'ll email you on launch day.';
+    document.getElementById('notifyOk').style.display = 'block';
+    return;
+  }
+  if(error){
+    alert('Something went wrong. Please try again.');
+    return;
+  }
+
   document.getElementById('notifyForm').style.display = 'none';
   document.getElementById('notifyOk').style.display = 'block';
-  // You can connect this to Supabase or Mailchimp later
-  // For now it just shows the success message
 }
 document.getElementById('notifyEmail').addEventListener('keydown', function(e){
   if(e.key === 'Enter') submitNotify();
