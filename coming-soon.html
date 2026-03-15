@@ -400,7 +400,20 @@ document.getElementById('notifyEmail').addEventListener('keydown', function(e){
   if(e.key === 'Enter') submitNotify();
 });
 
-// ── Hex grid canvas ────────────────────────────────────────
+// ── Secret admin keyboard shortcut ────────────────────────
+(function(){
+  var secret = 'Zwiki2001';
+  var typed = '';
+  document.addEventListener('keydown', function(e){
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    if(tag === 'INPUT' || tag === 'TEXTAREA') return;
+    typed += e.key;
+    if(typed.length > secret.length) typed = typed.slice(-secret.length);
+    if(typed === secret){
+      window.location.href = 'admin.html';
+    }
+  });
+})();
 (function(){
   var canvas = document.getElementById('bg');
   var ctx = canvas.getContext('2d');
