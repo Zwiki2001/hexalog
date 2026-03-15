@@ -13,7 +13,7 @@
       --blue:#1A3F8F;--blue2:#0d2660;--gold:#F5A623;--gold2:#FFB940;
       --teal:#00D4AA;--white:#E4EAFF;--dim:#8094B8;--dark:#070D1A;
     }
-    html,body{height:100%;width:100%;overflow-x:hidden}
+    html,body{height:100%;width:100%;overflow-x:hidden;overflow-y:auto}
     body{
       font-family:'Inter',sans-serif;
       background:var(--dark);
@@ -212,15 +212,46 @@
     }
 
     /* ── Responsive ── */
-    @media(max-width:600px){
-      .card{padding:40px 20px}
-      .countdown{gap:8px}
-      .cd-block{padding:14px 14px;min-width:72px}
+    @media(max-width:768px){
+      body{align-items:flex-start;justify-content:flex-start}
+      .card{padding:36px 20px 48px;max-width:100%;width:100%}
+      .brand{margin-bottom:32px}
+      .brand-hex{width:44px;height:44px;font-size:.95rem}
+      .brand-name{font-size:1.6rem}
+      .badge{font-size:.72rem;padding:6px 14px}
+      h1{font-size:clamp(1.9rem,7vw,2.6rem)}
+      .sub{font-size:.93rem;margin-bottom:36px}
+      .launch-strip{font-size:.82rem;padding:10px 14px;margin-bottom:36px;text-align:left}
+      .countdown{gap:8px;margin-bottom:36px}
+      .cd-block{padding:14px 10px;min-width:68px;border-radius:12px}
+      .cd-num{font-size:clamp(1.7rem,6vw,2.4rem)}
+      .cd-lbl{font-size:.62rem}
       .cd-sep{display:none}
-      h1{font-size:clamp(1.8rem,8vw,2.4rem)}
-      .brand-name{font-size:1.5rem}
-      .notify-form{flex-direction:column}
-      .notify-form input,.notify-form button{width:100%}
+      .notify-form{flex-direction:column;gap:8px;margin-bottom:36px}
+      .notify-form input,.notify-form button{width:100%;min-width:unset}
+      .notify-form input{font-size:.9rem;padding:12px 14px}
+      .notify-form button{padding:13px;font-size:.92rem}
+      .services-row{gap:7px;margin-bottom:36px}
+      .svc-tag{font-size:.75rem;padding:7px 12px}
+      .countries{gap:10px;margin-bottom:36px}
+      .ctry{font-size:.82rem}
+      .ctry-flag{font-size:1.1rem}
+      .portal-link{font-size:.82rem;margin-bottom:36px}
+      .cs-footer{font-size:.72rem}
+      .glow-orb{width:340px;height:340px}
+    }
+
+    @media(max-width:400px){
+      .card{padding:28px 16px 40px}
+      .brand-name{font-size:1.35rem}
+      .brand-hex{width:38px;height:38px;font-size:.82rem}
+      h1{font-size:1.7rem}
+      .cd-block{padding:12px 8px;min-width:60px}
+      .cd-num{font-size:1.5rem}
+      .countdown{gap:5px}
+      .launch-strip{font-size:.76rem}
+      .services-row{gap:5px}
+      .svc-tag{font-size:.7rem;padding:6px 10px}
     }
   </style>
 </head>
