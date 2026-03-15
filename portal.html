@@ -1041,29 +1041,57 @@ function downloadPOD(){
 }
 
 // ── DEMO BUTTON ──────────────────────────────────────────────
-document.getElementById('btnDemo').addEventListener('click', function(){
+document.getElementById('btnDemo').addEventListener('click', async function(){
+  var btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Loading demo…';
+
+  var now = Date.now();
   var demo = {
-    id:'HL-DEMO01', status:'delivered', createdAt: new Date(Date.now()-86400000*2).toISOString(),
+    id:'HL-DEMO01', status:'delivered',
+    createdAt: new Date(now - 86400000*2).toISOString(),
+    orderType: 'B2B',
     client:{name:'Jan Janssen', email:'jan@test.com', phone:'+32 470 00 00 00', company:'Test BV'},
-    shipment:{from:'BE', to:'NL', qty:3, palletType:'Euro Pallet', height:'120', weight:'450',
-      service:'LTL', express:false, weekend:false, taillift:true, insurance:false, notes:'Handle with care'},
-    price:'€114.00', paid:true, paymentMethod:'bank', pod: true,
+    shipment:{
+      from:'BE', fromCity:'Antwerp', pickupAddress:'Havenlaan 12, 2000 Antwerp', pickupPhone:'+32 3 000 0000',
+      to:'NL', toCity:'Rotterdam', deliveryAddress:'Waalhaven 5, 3087 Rotterdam', deliveryPhone:'+31 10 000 0000',
+      qty:3, palletType:'Euro Pallet', height:'120', weight:'450',
+      service:'LTL', express:false, weekend:false, taillift:true, insurance:false,
+      notes:'Handle with care — fragile electronics'
+    },
+    price:'€114.00', paid:true, paymentMethod:'bank', pod:true,
     timeline:[
-      {status:'pending',    ts:new Date(Date.now()-86400000*2).toISOString(),    note:''},
-      {status:'confirmed',  ts:new Date(Date.now()-86400000*1.5).toISOString(), note:'Confirmed by HexaLog team'},
-      {status:'picked_up',  ts:new Date(Date.now()-86400000).toISOString(),      note:'Picked up at 09:15, driver on route'},
-      {status:'in_transit', ts:new Date(Date.now()-3600000*6).toISOString(),     note:'Arrived at Antwerp hub'},
-      {status:'delivered',  ts:new Date(Date.now()-3600000*2).toISOString(),     note:'Delivered and signed by J. Janssen'}
+      {status:'pending',    ts:new Date(now-86400000*2).toISOString(),    note:'Order received online'},
+      {status:'confirmed',  ts:new Date(now-86400000*1.5).toISOString(),  note:'Confirmed by HexaLog team'},
+      {status:'picked_up',  ts:new Date(now-86400000).toISOString(),      note:'Picked up at 09:15, driver on route'},
+      {status:'in_transit', ts:new Date(now-3600000*6).toISOString(),     note:'Arrived at Antwerp hub'},
+      {status:'delivered',  ts:new Date(now-3600000*2).toISOString(),     note:'Delivered and signed by J. Janssen'}
     ]
   };
-  var orders = getOrders().filter(function(o){ return o.id !== 'HL-DEMO01'; });
-  orders.unshift(demo);
-  saveOrders(orders);
+
+  // Upsert into Supabase so findOrder works on any device
+  await _sb.from('orders').upsert({
+    id: demo.id,
+    status: demo.status,
+    created_at: demo.createdAt,
+    order_type: demo.orderType,
+    client: demo.client,
+    shipment: demo.shipment,
+    price: demo.price,
+    paid: demo.paid,
+    pod: demo.pod,
+    timeline: demo.timeline
+  });
+
   document.getElementById('loginId').value = 'HL-DEMO01';
   document.getElementById('loginEmail').value = 'jan@test.com';
+  currentOrder = demo;
   showPortal(demo);
   sessionStorage.setItem('hl_portal_id', demo.id);
   sessionStorage.setItem('hl_portal_email', demo.client.email);
+
+  btn.disabled = false;
+  btn.textContent = 'Load Demo Order →';
 });
 
 // ── AUTO LOGIN FROM SESSION ──────────────────────────────────

@@ -3,6 +3,15 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+  // Redirect to coming soon — remove this block when launching
+  (function(){
+    var p = new URLSearchParams(window.location.search);
+    if(p.get('preview') !== 'Zwiki2001'){
+      window.location.replace('coming-soon.html');
+    }
+  })();
+</script>
 <title>HexaLog &mdash; Logistics Benelux &amp; France</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
